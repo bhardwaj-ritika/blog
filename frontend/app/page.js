@@ -1,101 +1,160 @@
-import Image from "next/image";
+"use client"
+import { useEffect, useState } from "react"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+function Login() {
+    const [data, setData] = useState({
+        username: "",
+        password: ""
+    });
+    const [error, setError] = useState({});
+    const [form, setForm] = useState(false);
+    const [submitted, setsubmitted] = useState({});
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    const handleInputs = (e) => {
+        const { name, value } = e.currentTarget;
+        setData({ ...data, [name]: value });
+    };
+
+    const submit = (e) => {
+        e.preventDefault();
+        let err = {}; // Empty object to store errors
+
+        // Validate fields
+        Object.keys(data).forEach((key) => {
+            if (!data[key]) {
+                err[key] = `${key} is required`;
+            }
+        });
+
+        // If there are errors, set them and stop form submission
+        if (Object.keys(err).length > 0) {
+            setError(err);
+            return;
+        } else {
+            setError({}); // Clear errors when inputs are valid
+        }
+
+        const myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+
+        const raw = JSON.stringify(data);
+
+        const requestOptions = {
+            method: "POST",
+            headers: myHeaders,
+            body: raw,
+            redirect: "follow"
+        };
+
+        fetch("http://localhost:3001/login", requestOptions)
+            .then((response) => response.json())
+            .then((result) => {
+                if (!result.status) {
+                    setError(result.errors || {});
+                }
+                if (result && result.status) {
+                    const { params, headers, body } = result;
+                    setsubmitted({
+                        ...submitted,
+                        params,
+                        headers,
+                        body
+                    });
+                    setForm(true);
+                } else {
+                    setForm(false);
+                    setsubmitted({});
+                }
+            });
+    }
+
+    const back = () => {
+        setForm(false);
+        setsubmitted({});
+        setData({ username: "", password: "" }); // Reset input fields
+    }
+
+    return (
+        <div className="container mx-auto flex flex-col w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+            {!form ? (
+                <div>
+                    <MyInput
+                        id={"username"}
+                        name={"username"}
+                        type={"text"}
+                        value={data.username}
+                        onInput={handleInputs}
+                        label={"Username"}
+                    />
+                    {error.username && <p className="text-red-500">{error.username}</p>}
+
+                    <MyInput
+                        id={"password"}
+                        name={"password"}
+                        type={"password"}
+                        value={data.password}
+                        onInput={handleInputs}
+                        label={"Password"}
+                    />
+                    {error.password && <p className="text-red-500">{error.password}</p>}
+                    <button onClick={submit} className="mt-4 w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Submit</button>
+                </div>
+            ) : (
+                <div className="border border-black w-60 text-center p-5 mt-10 mb-10">
+                    <h1 className="text-xl font-bold">Welcome</h1>
+                    <h2 className="text-lg">Admin</h2>
+                    <button onClick={back} className="border border-black bg-black text-white pl-4 pr-4 pt-1 pb-1 mt-2">Log out</button>
+                </div>
+            )}
+            <div>
+                <ShowData data={data} />
+                {form ? <p className="text-green-500">Login successful!</p> : <p className="text-red-500">{error.username || error.password ? "Login failed. Please check your credentials." : "Please enter your credentials."}</p>}
+                <ShowForm submitted={submitted} />
+            </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
 }
+
+export default Login;
+
+function MyInput(props) {
+    const { id, name, type, value, onInput, label } = props;
+    return (
+        <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-900">
+                {label}
+            </label>
+            <input
+                className="block w-full py-2 px-3 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-500"
+                type={type}
+                name={name}
+                id={id}
+                value={value}
+                onInput={onInput}
+                placeholder={label || name}
+            />
+        </div>
+    );
+}
+
+const ShowData = ({ data }) => (
+    <div>
+        <h2 className="font-bold">Form Data</h2>
+        <ul>
+            {Object.keys(data).map((key, index) => (
+                <li key={index}>{`${key} => ${data[key]}`}</li>
+            ))}
+        </ul>
+    </div>
+)
+
+const ShowForm = ({ submitted }) => (
+    <div>
+        <h2 className="font-bold">Server Response</h2>
+        <ul>
+            {Object.entries(submitted).map(([key, value], index) => (
+                <li key={index}>{`${key} => ${JSON.stringify(value)}`}</li>
+            ))}
+        </ul>
+    </div>
+)
